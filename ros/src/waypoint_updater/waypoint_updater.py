@@ -61,7 +61,6 @@ class WaypointUpdater(object):
                 next_x = []
                 next_y = []
                 next_z = []
-		next_val_x = []
                 '''
                 for i in range(LOOKAHEAD_WPS):
                     next_x.append(self.car_x +(dist_inc*i)*math.cos(car_yaw))
@@ -71,8 +70,8 @@ class WaypointUpdater(object):
                 self.publish_final_wpt(next_x,next_y,next_z)
                 '''
                 next_wpt = self.next_waypoint(car_pts,car_yaw,waypoints)
-                next_x,next_y,next_z,next_val_x = self.find_next_pts(waypoints,next_wpt)
-                self.publish_final_wpt(next_x,next_y,next_z,next_val_x)
+                next_x,next_y,next_z = self.find_next_pts(waypoints,next_wpt)
+                self.publish_final_wpt(next_x,next_y,next_z)
 
             except:
                 pass
@@ -134,7 +133,6 @@ class WaypointUpdater(object):
         next_x =[]
         next_y =[]
         next_z =[]
-	next_val_x = []
 
         for i in range(next_wpt,next_wpt + LOOKAHEAD_WPS):
             #check if i exceeds the length of the waypoint index 
@@ -142,13 +140,12 @@ class WaypointUpdater(object):
             next_x.append(waypoints[index].pose.pose.position.x)
             next_y.append(waypoints[index].pose.pose.position.y)
             next_z.append(waypoints[index].pose.pose.position.z)
-	    next_val_x.append(waypoints[index].twist.twist.linear.x)
 
-        return next_x,next_y,next_z ,next_val_x
-
+        return next_x,next_y,next_z
 
 
-    def publish_final_wpt(self,next_x,next_y,next_z,next_val_x):
+
+    def publish_final_wpt(self,next_x,next_y,next_z):
         wpts = []
         p = Waypoint()
         for i in range(len(next_x)):
@@ -156,7 +153,7 @@ class WaypointUpdater(object):
             p.pose.pose.position.y = next_y[i]
             p.pose.pose.position.z = next_z[i]
             
-            p.twist.twist.linear.x = next_val_x[i]
+            p.twist.twist.linear.x = 11.6
             wpts.append(p)
         lane = Lane()
         lane.header.frame_id = "/world"
