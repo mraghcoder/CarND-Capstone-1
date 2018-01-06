@@ -19,19 +19,24 @@ class TLClassifier(object):
         # flag to switch between real and sim trained classifier
         self.simulation = simulation
 
-        # Load the right models
-        if self.simulation is True:
-            self.checkpoint = working_dir + '/output_inference_graph_bosch_2_sim/frozen_inference_graph.pb'
+        # Load the  model
+        if simulation:
+            self.checkpoint = working_dir + '/simulator/frozen_inference_graph.pb'
+
+            # Create a label dictionary
+            item_green = {'id': 3, 'name': u'traffic_light-green'}
+            item_red = {'id': 1, 'name': u'traffic_light-red'}
+            item_yellow = {'id': 2, 'name': u'traffic_light-yellow'}
+
+            self.label_dict = {1: item_red, 2: item_yellow, 3: item_green}
         else:
-            self.checkpoint = working_dir + '/output_inference_graph_bosch_2_udacity_real/frozen_inference_graph.pb'
+            self.checkpoint = working_dir + '/traffic_light_bosch_site_rcnn/frozen_inference_graph.pb'
+            item_green = {'id': 1, 'name': u'traffic_light-green'}
+            item_red = {'id': 2, 'name': u'traffic_light-red'}
+            item_yellow = {'id': 3, 'name': u'traffic_light-yellow'}
 
-        # Create a label dictionary
-        item_green = {'id': 1, 'name': u'traffic_light-green'}
-        item_red = {'id': 2, 'name': u'traffic_light-red'}
-        item_yellow = {'id': 3, 'name': u'traffic_light-yellow'}
-
-        self.label_dict = {1: item_green, 2: item_red, 3: item_yellow}
-
+            self.label_dict = {1: item_green, 2: item_red, 3: item_yellow}
+        
         # Build the model
         self.image_np_output = None
         self.detection_graph = tf.Graph()
@@ -62,7 +67,6 @@ class TLClassifier(object):
         self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
         self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
         self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
-
         self.activated = True  # flag to turn off classifier during development
 
         pass
@@ -109,17 +113,17 @@ class TLClassifier(object):
                     self.current_light = TrafficLight.UNKNOWN
 
                     if class_name == 'traffic_light-red':
-                        print('Red Light detected')
+                        #print('Red Light detected')
                         tl_detected = 'red'
                         self.current_light = TrafficLight.RED
                     elif class_name == 'traffic_light-green' :
-                        print('Green Light detected')
+                        #print('Green Light detected')
                         if tl_detected != 'red' and tl_detected != 'yellow':
                             tl_detected = 'green'
                             self.current_light = TrafficLight.GREEN
 
                     elif class_name == 'traffic_light-yellow':
-                        print('Yellow Light detected')
+                        #print('Yellow Light detected')
                         if tl_detected != 'red':
                             tl_detected = 'yellow'
                             self.current_light = TrafficLight.YELLOW

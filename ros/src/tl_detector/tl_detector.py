@@ -11,6 +11,7 @@ import tf
 import cv2
 import yaml
 import math
+import time
 
 STATE_COUNT_THRESHOLD = 3
 TL_LOOKAHEAD_WPS = 250 # Number of waypoints to look ahead for traffic light.
@@ -244,6 +245,7 @@ class TLDetector(object):
             return False
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        #img = cv2.resize(cv_image, (300, 400))
 
         # return self.traffic_light_status[light]
 
@@ -288,8 +290,11 @@ class TLDetector(object):
             light = True
 
         if light:
+            start_time = time.time()
             state = self.get_light_state(closest_light_id)
-            rospy.loginfo("nearing light at car_wp, stop_line_wp, state = %s, %s, %s", car_position, closest_stop_line_wp, state)
+            time_elapsed = time.time() - start_time
+            print("time for detection:", time_elapsed)
+            #rospy.loginfo("nearing light at car_wp, stop_line_wp, state = %s, %s, %s", car_position, closest_stop_line_wp, state)
             return closest_stop_line_wp, state
         self.waypoints = None
         return -1, TrafficLight.UNKNOWN
