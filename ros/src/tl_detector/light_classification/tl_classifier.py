@@ -20,23 +20,31 @@ class TLClassifier(object):
         self.simulation = simulation
 
         # Load the  model
-        if simulation:
-            self.checkpoint = working_dir + '/simulator/frozen_inference_graph.pb'
+        # if simulation:
+        #     self.checkpoint = working_dir + '/simulator/frozen_inference_graph.pb'
+        #
+        #     # Create a label dictionary
+        #     item_green = {'id': 3, 'name': u'traffic_light-green'}
+        #     item_red = {'id': 1, 'name': u'traffic_light-red'}
+        #     item_yellow = {'id': 2, 'name': u'traffic_light-yellow'}
+        #
+        #     self.label_dict = {1: item_red, 2: item_yellow, 3: item_green}
+        # else:
+        #     self.checkpoint = working_dir + '/traffic_light_bosch_site_rcnn/frozen_inference_graph.pb'
+        #     item_green = {'id': 1, 'name': u'traffic_light-green'}
+        #     item_red = {'id': 2, 'name': u'traffic_light-red'}
+        #     item_yellow = {'id': 3, 'name': u'traffic_light-yellow'}
+        #
+        #     self.label_dict = {1: item_green, 2: item_red, 3: item_yellow}
 
-            # Create a label dictionary
-            item_green = {'id': 3, 'name': u'traffic_light-green'}
-            item_red = {'id': 1, 'name': u'traffic_light-red'}
-            item_yellow = {'id': 2, 'name': u'traffic_light-yellow'}
 
-            self.label_dict = {1: item_red, 2: item_yellow, 3: item_green}
-        else:
-            self.checkpoint = working_dir + '/traffic_light_bosch_site_rcnn/frozen_inference_graph.pb'
-            item_green = {'id': 1, 'name': u'traffic_light-green'}
-            item_red = {'id': 2, 'name': u'traffic_light-red'}
-            item_yellow = {'id': 3, 'name': u'traffic_light-yellow'}
+        self.checkpoint = working_dir + '/traffic_light_bosch_site_rcnn/frozen_inference_graph.pb'
+        item_green = {'id': 1, 'name': u'traffic_light-green'}
+        item_red = {'id': 2, 'name': u'traffic_light-red'}
+        item_yellow = {'id': 3, 'name': u'traffic_light-yellow'}
 
-            self.label_dict = {1: item_green, 2: item_red, 3: item_yellow}
-        
+        self.label_dict = {1: item_green, 2: item_red, 3: item_yellow}
+
         # Build the model
         self.image_np_output = None
         self.detection_graph = tf.Graph()
@@ -143,5 +151,5 @@ class TLClassifier(object):
         # Set it to object attribute for visualization topic output
         # Can be disabled to gain a few ms in performance
         self.image_np_output = image
-        print ("TL state:", tl_detected)
+        #print ("TL state:", tl_detected)
         return self.current_light

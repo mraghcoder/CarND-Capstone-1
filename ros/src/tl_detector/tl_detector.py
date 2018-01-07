@@ -14,7 +14,7 @@ import math
 import time
 
 STATE_COUNT_THRESHOLD = 3
-TL_LOOKAHEAD_WPS = 250 # Number of waypoints to look ahead for traffic light.
+TL_LOOKAHEAD_WPS = 55 # Number of waypoints to look ahead for traffic light.
 
 class TLDetector(object):
     def __init__(self):
@@ -32,6 +32,16 @@ class TLDetector(object):
         self.lights = []
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
+        self.simulation = True
+
+        self.bridge = CvBridge()
+        self.light_classifier = TLClassifier(self.simulation)
+        self.listener = tf.TransformListener()
+
+        self.state = TrafficLight.UNKNOWN
+        self.last_state = TrafficLight.UNKNOWN
+        self.last_wp = -1
+        self.state_count = 0
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -46,18 +56,10 @@ class TLDetector(object):
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
         sub6 = rospy.Subscriber('/image_color', Image, self.image_cb)
 
-        self.simulation = True;
+
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
-        self.bridge = CvBridge()
-        self.light_classifier = TLClassifier(self.simulation)
-        self.listener = tf.TransformListener()
-
-        self.state = TrafficLight.UNKNOWN
-        self.last_state = TrafficLight.UNKNOWN
-        self.last_wp = -1
-        self.state_count = 0
 
         rospy.spin()
 
@@ -157,6 +159,7 @@ class TLDetector(object):
             msg (Image): image from car-mounted camera
 
         """
+        #rospy.loginfo("inside image_cb")
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
@@ -174,6 +177,7 @@ class TLDetector(object):
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
+            #rospy.loginfo("inside tl_detector image_cb, light_wp state = %s, %s", light_wp, state)
             self.last_wp = light_wp
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
@@ -216,13 +220,11 @@ class TLDetector(object):
                 closest_point_not_found = False
 
             car_closest_base_wp_idx = car_closest_base_wp_idx + 1
-            if car_closest_base_wp_idx > len(self.base_wps):
+            if car_closest_base_wp_idx >= len(self.base_wps):
                 #rospy.loginfo("inside loop overflow, car_closest_base_wp_idx = %s", str(car_closest_base_wp_idx))
                 if one_loop_done:
-                    rospy.loginfo("inside loop overflow, one loop done")
                     closest_point_not_found = False
                 else:
-                    rospy.loginfo("inside loop overflow, one loop NOT done")
                     one_loop_done = True
                     car_closest_base_wp_idx = 0
 
@@ -244,13 +246,31 @@ class TLDetector(object):
             self.prev_light_loc = None
             return False
 
-        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-        #img = cv2.resize(cv_image, (300, 400))
 
-        # return self.traffic_light_status[light]
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+
+
 
         #Get classification
-        return self.light_classifier.get_classification(cv_image)
+
+
+        #rospy.loginfo("requested classification at %s", rospy.get_rostime())
+        if self.simulation:
+            # Unable to run classifier with simulator due to delay
+            return self.traffic_light_status[light]
+        else:
+            return self.light_classifier.get_classification(cv_image)
+
+
+        #print("TLC state:", tl_status, "Genie TL state:", self.traffic_light_status[light])
+
+        # rospy.loginfo("requested classification at %s", rospy.get_rostime())
+        # rospy.loginfo("got classification at wp, classification = %s, %s", self.current_position[0], state)
+        # rospy.loginfo("stub, real = %s, %s", self.traffic_light_status[light], state)
+
+        #return state
+
+        # return tl_status
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -278,7 +298,7 @@ class TLDetector(object):
                 distance_to_light = len(self.base_wps) - car_position + stop_line_wp
 
             #rospy.loginfo("distance_to_light, closest_dist = %s, %s", distance_to_light, closest_dist)
-            if distance_to_light < closest_dist:
+            if (distance_to_light < closest_dist) and (stop_line_wp > car_position):
                 closest_dist = distance_to_light
                 closest_stop_line_wp = stop_line_wp
                 closest_light_id = i
@@ -290,10 +310,7 @@ class TLDetector(object):
             light = True
 
         if light:
-            start_time = time.time()
             state = self.get_light_state(closest_light_id)
-            time_elapsed = time.time() - start_time
-            print("time for detection:", time_elapsed)
             #rospy.loginfo("nearing light at car_wp, stop_line_wp, state = %s, %s, %s", car_position, closest_stop_line_wp, state)
             return closest_stop_line_wp, state
         self.waypoints = None
