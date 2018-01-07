@@ -59,9 +59,45 @@ class TLDetector(object):
 
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
-
-
         rospy.spin()
+        # self.loop()
+
+    def loop(self):
+        rate = rospy.Rate(50)
+
+        while not rospy.is_shutdown():
+            # print ('inside the loop')
+            if self.camera_image != None and self.waypoints != None :
+                # print('going to do some detection')
+                light_wp, state = self.process_traffic_lights()
+
+                '''
+                #Publish upcoming red lights at camera frequency.
+                #Each predicted state has to occur `STATE_COUNT_THRESHOLD` number
+                #of times till we start using it. Otherwise the previous stable state is
+                #used.
+                '''
+                #rospy.loginfo("inside tl_detector image_cb, light_wp state = %s, %s", light_wp, state)
+
+                if self.state != state:
+                    self.state_count = 0
+                    self.state = state
+                elif self.state_count >= STATE_COUNT_THRESHOLD:
+                    self.last_state = self.state
+                    light_wp = light_wp if state == TrafficLight.RED else -1
+                    # rospy.loginfo("inside tl_detector image_cb, light_wp state = %s, %s", light_wp, state)
+                    self.last_wp = light_wp
+                    self.upcoming_red_light_pub.publish(Int32(light_wp))
+                else:
+                    self.upcoming_red_light_pub.publish(Int32(self.last_wp))
+                self.state_count += 1
+
+                # rospy.loginfo("inside tl_detector image_cb, light_wp state = %s, %s", light_wp, state)
+                #l = Int32()
+                #l.data(light_wp)
+                #self.upcoming_red_light_pub.publish(light_wp)
+
+            rate.sleep()
 
     def pose_cb(self, msg):
         #rospy.loginfo("inside current cb")
@@ -162,7 +198,6 @@ class TLDetector(object):
         #rospy.loginfo("inside image_cb")
         self.has_image = True
         self.camera_image = msg
-        light_wp, state = self.process_traffic_lights()
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -170,6 +205,9 @@ class TLDetector(object):
         of times till we start using it. Otherwise the previous stable state is
         used.
         '''
+
+        light_wp, state = self.process_traffic_lights()
+
         #rospy.loginfo("inside tl_detector image_cb, light_wp state = %s, %s", light_wp, state)
         if self.state != state:
             self.state_count = 0
@@ -183,6 +221,7 @@ class TLDetector(object):
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
+
 
     def get_closest_waypoint(self):
         """Identifies the closest path waypoint to the given position
@@ -204,6 +243,8 @@ class TLDetector(object):
 
         while closest_point_not_found:
             base_wp = self.base_wps[car_closest_base_wp_idx]
+            if len(self.current_position) < 3 or len(base_wp)< 3:
+                print("len(self.current_position)",len(self.current_position), "len(base_wp)",len(base_wp))
             #rospy.loginfo("current position = %s, %s, %s", str(self.current_position[0]), str(self.current_position[1]), str(self.current_position[2]))
             distance = math.sqrt(((self.current_position[0] - base_wp[0]) ** 2) +
                                  ((self.current_position[1] - base_wp[1]) ** 2) +
@@ -257,12 +298,17 @@ class TLDetector(object):
         #rospy.loginfo("requested classification at %s", rospy.get_rostime())
         if self.simulation:
             # Unable to run classifier with simulator due to delay
-            return self.traffic_light_status[light]
+
+            tl_status = self.traffic_light_status[light]
+            print ("Sending genie TL state:", tl_status)
+            return tl_status
         else:
-            return self.light_classifier.get_classification(cv_image)
+            tl_status = self.light_classifier.get_classification(cv_image)
+            print("TLC state:", tl_status, "Genie TL state:", self.traffic_light_status[light])
+            return tl_status
 
 
-        #print("TLC state:", tl_status, "Genie TL state:", self.traffic_light_status[light])
+
 
         # rospy.loginfo("requested classification at %s", rospy.get_rostime())
         # rospy.loginfo("got classification at wp, classification = %s, %s", self.current_position[0], state)

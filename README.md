@@ -25,8 +25,10 @@ The ROS nodes implementing the Perception, Planning and Control sub-systems are 
 ![alt text](imgs/final-project-ros-graph-v2.png "ROS Graph")
 
 ### Waypoint Updater Node
+The Waypoint update node updates the waypoints ahead by calculating the distance and angle to the next waypoint ahead. In case a Red traffic light is detected, it calculates the waypoints up to the stop line.
 
 ### Controller Node
+A PID controller is implemented in the DBW node to control the speed, throttle and brake commands out to the car control.
 
 ### Traffic Light Detector Node
 The traffic light detector node detects the traffic light ahead based on the camera image received. The traffic light classifier was developed using [TensorFlow Object detection API](https://github.com/tensorflow/models/tree/master/research/object_detection) and following the guidelines provided in this [post](https://medium.com/@WuStangDan/step-by-step-tensorflow-object-detection-api-tutorial-part-1-selecting-a-model-a02b6aabe39e)
