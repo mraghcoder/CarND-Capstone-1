@@ -32,7 +32,8 @@ class TLDetector(object):
         self.lights = []
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
-        self.simulation = True
+        self.simulation = False; #rospy.get_param("simulator_flag", False)
+        print("Simulation mode:",self.simulation)
 
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier(self.simulation)
